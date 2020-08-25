@@ -1,34 +1,86 @@
 package base
 
-import glm_.vec2.Vec2
+import base.gamestates.Level
 import glm_.vec2.Vec2i
-import glm_.vec3.Vec3
 import glm_.vec3.Vec3ui
+import gln.gl
+import helper.Timer
+import org.lwjgl.opengl.GL
+import uno.glfw.GLFWErrorCallbackT
 import uno.glfw.GlfwWindow
+import uno.glfw.VSync
+import uno.glfw.glfw
 
 object Game {
+
+    val window:GlfwWindow
+
+    val FPS=60
+
+    val timer=Timer()
+
+    private var running=false
+
     const val title= "BreakoutOpenGl"
     val resolution=Vec2i(1000,800)
 
     var currentLevelPosition:Int=0
     private set
 
-    private var currentLevel:Level?=null
+    //TODO: Normally the Main Menu as first
+    private var currentState:GameStateInterface
 
     private var totalLevels:Int=0
 
     private val background=Vec3ui(33,33,33) //RGB
 
-    fun createAndStartNewLevel(window:GlfwWindow){
-        if(currentLevel?.finished == false){
-            System.err.println("Current Level not Finished")
-            return
+
+    init{
+
+       glfw.init()
+
+        glfw.errorCallback=object : GLFWErrorCallbackT {
+            override fun invoke(p1: glfw.Error, p2: String) {
+                System.err.println("$p1 , $p2")
+            }
+
         }
 
-        currentLevel=Level()
-        totalLevels++;
-        currentLevel?.render(window)
+        window = GlfwWindow(resolution, title).apply {
+            init(false)
+            resizable=false}
+        glfw.swapInterval=VSync.ON
 
+        gl.viewport(resolution)
+
+
+        currentState=Level()
+    }
+
+
+    fun start(){
+        running=true
+        window.show()
+        drawLoop()
+    }
+
+
+    fun drawLoop(){
+
+        window.loop {
+
+            currentState.render()
+
+        }
+
+    }
+
+    fun createAndStartNewLevel(window:GlfwWindow){
+        if(currentState is Level){
+            if(!(currentState as Level).finished)
+                //TODO: Maybe an Error?
+                return
+        }
     }
 
 }
