@@ -155,7 +155,6 @@ class Renderer() {
         vbo.data(BufferTarget.ARRAY,vertices!!, Usage.STATIC_DRAW)
 
         specifyVertexAttributes()
-
         gl.drawArrays(DrawMode.TRIANGLES,0,verticesCount)
 
 
@@ -176,11 +175,11 @@ class Renderer() {
     private fun specifyVertexAttributes() {
         /* Specify Vertex Pointer */
         gl.enableVertexAttribArray(Vertex.Type.POSITION.ordinal)
-        gl.vertexAttribPointer(0,3, VertexAttrType.FLOAT,false,Vertex.size*4,0)
+        gl.vertexAttribPointer(0,Vertex.Type.POSITION.size, VertexAttrType.FLOAT,false,Vertex.size*4,0)
 
         /* Specify Color Pointer */
         gl.enableVertexAttribArray(Vertex.Type.COLOR.ordinal)
-        gl.vertexAttribPointer(1,3, VertexAttrType.FLOAT,true,Vertex.size*4,Vertex.Type.POSITION.size*4)
+        gl.vertexAttribPointer(1,Vertex.Type.COLOR.size, VertexAttrType.FLOAT,true,Vertex.size*4,Vertex.Type.POSITION.size*4)
 
         /* Specify Texture Pointer */
       //  gl.enableVertexAttribArray(Vertex.Type.TEX_POSITION.ordinal)
@@ -193,7 +192,7 @@ class Renderer() {
 
     fun drawBricks(buffer:FloatBuffer){
     vertices=buffer
-        verticesCount=12
+        verticesCount=buffer.capacity()/Vertex.size
         flush()
     }
 

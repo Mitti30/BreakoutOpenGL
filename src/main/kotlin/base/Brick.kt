@@ -5,7 +5,7 @@ import helper.Vertex
 
 abstract class Brick(x:Float,y:Float,width:Float,height:Float,r:Float,g:Float,b:Float) {
 
-    val vertexes:Array<Vertex> = Vertex.createVertices(x,y,width,height, r, g, b)
+    val vertices:Array<Vertex> = Vertex.createVertices(x,y,width,height, r, g, b)
 
     abstract var remainingHits: Int
         protected set

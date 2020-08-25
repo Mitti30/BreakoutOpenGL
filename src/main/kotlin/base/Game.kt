@@ -5,11 +5,11 @@ import glm_.vec2.Vec2i
 import glm_.vec3.Vec3ui
 import gln.gl
 import helper.Timer
-import org.lwjgl.opengl.GL
 import uno.glfw.GLFWErrorCallbackT
 import uno.glfw.GlfwWindow
 import uno.glfw.VSync
 import uno.glfw.glfw
+import java.awt.Color
 
 object Game {
 
@@ -22,13 +22,13 @@ object Game {
     private var running=false
 
     const val title= "BreakoutOpenGl"
-    val resolution=Vec2i(1000,800)
+    val resolution=Vec2i(1200,800)
 
     var currentLevelPosition:Int=0
     private set
 
     //TODO: Normally the Main Menu as first
-    private var currentState:GameStateInterface
+    private var currentState:GameStateBase
 
     private var totalLevels:Int=0
 
@@ -50,11 +50,11 @@ object Game {
             init(false)
             resizable=false}
         glfw.swapInterval=VSync.ON
-
+        gl.clearColor(Color.GRAY)
         gl.viewport(resolution)
 
 
-        currentState=Level()
+        currentState=Level(window)
     }
 
 
