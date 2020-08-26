@@ -3,6 +3,8 @@ package base
 import base.gamestates.Level
 import glm_.vec2.Vec2i
 import glm_.vec3.Vec3ui
+import gln.BlendFactor
+import gln.State
 import gln.gl
 import helper.Timer
 import uno.glfw.GLFWErrorCallbackT
@@ -54,6 +56,9 @@ object Game {
         gl.viewport(resolution)
 
 
+        gl.enable(State.BLEND)
+        gl.blendFunc(BlendFactor.SRC_ALPHA, BlendFactor.ONE_MINUS_SRC_ALPHA)
+
         currentState=Level(window)
     }
 
@@ -70,9 +75,20 @@ object Game {
         window.loop {
 
             currentState.render()
-
+            sync()
         }
 
+    }
+
+    fun sync(){
+        var now=timer.time
+        val targetTime=1f/ FPS
+
+        while(now - timer.lastLoopTime < targetTime){
+            Thread.yield()
+            Thread.sleep(1)
+            now=timer.time
+        }
     }
 
     fun createAndStartNewLevel(window:GlfwWindow){

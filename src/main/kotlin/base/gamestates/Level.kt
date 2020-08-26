@@ -1,6 +1,7 @@
 package base.gamestates
 
 import base.Brick
+import base.Game
 import base.GameStateBase
 import base.Paddle
 import base.bricks.YellowBrick
@@ -46,8 +47,12 @@ class Level(window: GlfwWindow) : GameStateBase(window) {
         window.keyCB=object: KeyCB{
             override fun invoke(key: Int, scanCode: Int, action: Int, mods: Int) {
                 when(key){
-                    GLFW.GLFW_KEY_LEFT-> paddle.currentPosition=Vec3(paddle.currentPosition.component1()-paddle.velocity,paddle.currentPosition.component2(),paddle.currentPosition.component3())
-                    GLFW.GLFW_KEY_RIGHT->paddle.currentPosition=Vec3(paddle.currentPosition.component1()+paddle.velocity,paddle.currentPosition.component2(),paddle.currentPosition.component3())
+                    GLFW.GLFW_KEY_LEFT->
+                        if(paddle.currentPosition.component1()-paddle.dimension.component1()/2>0)
+                        paddle.currentPosition=Vec3(paddle.currentPosition.component1()-paddle.velocity,paddle.currentPosition.component2(),paddle.currentPosition.component3())
+                    GLFW.GLFW_KEY_RIGHT->
+                        if(paddle.currentPosition.component1()+paddle.dimension.component1()/2< Game.resolution.component1())
+                        paddle.currentPosition=Vec3(paddle.currentPosition.component1()+paddle.velocity,paddle.currentPosition.component2(),paddle.currentPosition.component3())
                 }
             }
 
