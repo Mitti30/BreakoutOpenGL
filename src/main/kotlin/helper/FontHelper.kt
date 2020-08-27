@@ -2,19 +2,29 @@ package helper
 
 import gln.TextureTarget
 import gln.identifiers.GlTexture
+import org.lwjgl.system.MemoryUtil
 import java.awt.Color
 import java.awt.Font
 import java.awt.RenderingHints
+import java.awt.geom.AffineTransform
+import java.awt.image.AffineTransformOp
 import java.awt.image.BufferedImage
+import java.io.File
+import java.nio.ByteBuffer
+import javax.imageio.ImageIO
 
 
 class FontHelper(private val font: Font, private val antiAlias: Boolean) {
 
-    private val glyphs= mapOf<Char, Glyph>()
+    val glyphs = mutableMapOf<Char, Glyph>()
 
-    private var texture=GlTexture(0)
+    var texture = GlTexture(0)
 
-    private val fontHeight = 0
+    var texWidth: Float = 0f
+
+    var texHeight = 0f
+
+    private var fontHeight = 0
 
     init {
         var imageWidth = 0
@@ -32,13 +42,84 @@ class FontHelper(private val font: Font, private val antiAlias: Boolean) {
             }
         }
 
-        val fontHeight = imageHeight
+        fontHeight = imageHeight
 
-        val image = BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_ARGB)
+        var image = BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_ARGB)
         val g = image.createGraphics()
+
+        var x = 0
+
+        for (i in 32..256) {
+            if (i == 127) continue
+
+            val c = i.toChar()
+            val charImage = createCharImage(c) ?: continue
+            
+            val charWidth = charImage.width
+            val charHeight = charImage.height
+
+            /* Create glyph and draw char on image */
+
+            /* Create glyph and draw char on image */
+            val ch = Glyph(charWidth, charHeight, x, image.height - charHeight, 0f)
+            g.drawImage(charImage, x, 0, null)
+            x += ch.width
+            glyphs[c] = ch
+
+        }
+
+        /* Flip image Horizontal to get the origin to bottom left */
+
+        /* Flip image Horizontal to get the origin to bottom left */
+        val transform = AffineTransform.getScaleInstance(1.0, -1.0)
+        transform.translate(0.0, -image.height.toDouble())
+        val operation = AffineTransformOp(
+            transform,
+            AffineTransformOp.TYPE_NEAREST_NEIGHBOR
+        )
+        image = operation.filter(image, null)
+
+        /* Get charWidth and charHeight of image */
+
+        /* Get charWidth and charHeight of image */
+        val width = image.width
+        val height = image.height
+
+        /* Get pixel data of image */
+
+        /* Get pixel data of image */
+        val pixels = IntArray(width * height)
+        image.getRGB(0, 0, width, height, pixels, 0, width)
+
+        /* Put pixel data into a ByteBuffer */
+
+        /* Put pixel data into a ByteBuffer */
+        val buffer: ByteBuffer = MemoryUtil.memAlloc(width * height * 4)
+        for (i in 0 until height) {
+            for (j in 0 until width) {
+                /* Pixel as RGBA: 0xAARRGGBB */
+                val pixel = pixels[i * width + j]
+                /* Red component 0xAARRGGBB >> 16 = 0x0000AARR */buffer.put(((pixel shr 16) and 0xFF).toByte())
+                /* Green component 0xAARRGGBB >> 8 = 0x00AARRGG */buffer.put(((pixel shr 8) and 0xFF).toByte())
+                /* Blue component 0xAARRGGBB >> 0 = 0xAARRGGBB */buffer.put((pixel and 0xFF).toByte())
+                /* Alpha component 0xAARRGGBB >> 24 = 0x000000AA */buffer.put(((pixel shr 24) and 0xFF).toByte())
+            }
+        }
+        /* Do not forget to flip the buffer! */
+        /* Do not forget to flip the buffer! */buffer.flip()
+
+        /* Create texture */
+
+        /* Create texture */
+        val fontTexture = Renderer.createTexture(buffer, width, height)
+        MemoryUtil.memFree(buffer)
+        texWidth = width.toFloat()
+        texHeight = height.toFloat()
+        texture = fontTexture
+
     }
 
-    private fun createCharImage(c: Char):BufferedImage?{
+    private fun createCharImage(c: Char): BufferedImage? {
 
         var image = BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB)
         var g = image.createGraphics()
@@ -59,6 +140,7 @@ class FontHelper(private val font: Font, private val antiAlias: Boolean) {
 
         /* Create image for holding the char */
         image = BufferedImage(charWidth, charHeight, BufferedImage.TYPE_INT_ARGB)
+
         g = image.createGraphics()
         if (antiAlias) {
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
@@ -114,7 +196,7 @@ class FontHelper(private val font: Font, private val antiAlias: Boolean) {
         return height
     }
 
-    fun drawText(renderer: Renderer, text: CharSequence, x: Float, y: Float, c: Color=Color.WHITE) {
+    fun drawText(renderer: Renderer, text: CharSequence, x: Float, y: Float, c: Color = Color.WHITE) {
         val textHeight = getHeight(text)
         var drawX = x
         var drawY = y
@@ -136,13 +218,21 @@ class FontHelper(private val font: Font, private val antiAlias: Boolean) {
                 continue
             }
             val g = glyphs[ch]
-            renderer.drawTextureRegion(texture, drawX, drawY, g!!.x, g.y, g.width, g.height, c)
-            drawX += g.width.toFloat()
+            g?.let {
+                // drawTextureRegion(font.texture, drawX, y, it.x, it.y, it.width, it.height)
+                val vert = Vertex.createVertices(
+                    texWidth, texHeight, drawX, y, it.x.toFloat(), it.y.toFloat(),
+                    it.width.toFloat(), it.height.toFloat(), c
+                )
+                vert.forEach { v -> renderer.draw(v.toFloatArray()) }
+                drawX += g.width
+            }
+
         }
         renderer.end()
     }
+        class Glyph(val width: Int, val height: Int, val x: Int, val y: Int, val advance: Float)
 
-    class Glyph(val width: Int, val height: Int, val x: Int, val y: Int)
 
 
 }

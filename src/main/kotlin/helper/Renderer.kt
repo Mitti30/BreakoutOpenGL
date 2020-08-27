@@ -2,9 +2,9 @@ package helper
 
 import glm_.vec2.Vec2i
 import gln.*
+import gln.glf.semantic
 import gln.identifiers.*
-import org.lwjgl.opengl.GL11C.*
-import org.lwjgl.opengl.GL13C.GL_CLAMP_TO_BORDER
+import org.lwjgl.BufferUtils
 import org.lwjgl.stb.STBImage.*
 import org.lwjgl.system.MemoryStack
 import java.awt.Color
@@ -15,7 +15,6 @@ import java.io.BufferedReader
 import java.io.FileInputStream
 import java.io.InputStreamReader
 import java.nio.ByteBuffer
-import java.nio.FloatBuffer
 import java.nio.IntBuffer
 
 
@@ -28,17 +27,16 @@ class Renderer {
     private var vbo = GlBuffer(0)
     private var program = GlProgram.NULL
 
-    private var fragmentShader = GlShader(0)
-    private var vertexShader = GlShader(0)
+    //Is this enough Memory for us?
+    private var vertices=BufferUtils.createFloatBuffer(4096)
 
-    private var vertices: FloatBuffer? = null
     private var verticesCount = 0
 
-    private var font = FontHelper(Font(MONOSPACED, PLAIN, 16), true)
-
+    var font = FontHelper(Font(MONOSPACED, PLAIN, 16), true)
+    val brick:GlTexture
     init {
-        initShaderProgram()
-        loadTexture("./src/main/resources/assets/wall.jpg")
+        initDefaultShaderProgram()
+        brick=loadTexture("./src/main/resources/assets/wall.jpg")
 
     }
 
@@ -92,9 +90,9 @@ class Renderer {
     }
 
 
-    private fun initShaderProgram() {
-        vertexShader = compileShader(ShaderType.VERTEX_SHADER, "./src/main/resources/shader/vertex.glsl")
-        fragmentShader = compileShader(ShaderType.FRAGMENT_SHADER, "./src/main/resources/shader/fragment.glsl")
+    private fun initDefaultShaderProgram() {
+       val vertexShader = compileShader(ShaderType.VERTEX_SHADER, "./src/main/resources/shader/vertex.glsl")
+       val fragmentShader = compileShader(ShaderType.FRAGMENT_SHADER, "./src/main/resources/shader/fragment.glsl")
         gl.releaseShaderCompiler()
         program = GlProgram.create()
 
@@ -106,7 +104,10 @@ class Renderer {
         vbo = gl.genBuffers()
         vbo.bind(BufferTarget.ARRAY)
 
+        //OpenGL allocates our memory because we want to fill it later
+        vbo.data(BufferTarget.ARRAY, vertices.capacity() * 4, Usage.DYNAMIC_DRAW)
 
+        specifyVertexAttributes()
     }
 
     fun useShader(fragmentShader: GlShader, vertexShader: GlShader) {
@@ -146,27 +147,24 @@ class Renderer {
 
     fun flush() {
 
-        if (verticesCount <= 0) return
-
-        vao = gl.genVertexArrays()
-        vao.bind()
+        if (verticesCount <= 0) return else vertices.flip()
 
 
-        vbo = gl.genBuffers()
-        vbo.bind(BufferTarget.ARRAY)
 
-        vbo.data(BufferTarget.ARRAY, vertices!!, Usage.STATIC_DRAW)
+        vbo.subData(BufferTarget.ARRAY, vertices)
+        //gl.bufferSubData(vbo,0,vertices)
+        //vbo.data(BufferTarget.ARRAY,vertices, Usage.DYNAMIC_DRAW)
 
-        specifyVertexAttributes()
         gl.drawArrays(DrawMode.TRIANGLES, 0, verticesCount)
+         //gl.drawElements(DrawMode.TRIANGLES,verticesCount, IndexType.UNSIGNED_INT,0)
+        vertices.clear()
+        verticesCount=0
 
-      //  gl.drawElements(DrawMode.TRIANGLES,verticesCount, IndexType.UNSIGNED_INT,0)
+
     }
 
     fun getTextWidth(text: String) = font.getWidth(text)
     fun getTextHeight(text: String) = font.getHeight(text)
-
-    fun drawText(text: String, x: Float, y: Float, color: Color) = font.drawText(this, text, x, y, color)
 
     fun clear() {
         gl.clear(ClearBufferMask.COLOR_BUFFER_BIT)
@@ -197,7 +195,7 @@ class Renderer {
             VertexAttrType.FLOAT,
             false,
             Vertex.size * 4,
-            (Vertex.Type.POSITION.size + Vertex.Type.COLOR.size)*4
+            (Vertex.Type.POSITION.size + Vertex.Type.COLOR.size) * 4
         )
     }
 
@@ -214,13 +212,51 @@ class Renderer {
 
     }
 
-    fun drawBricks(buffer: FloatBuffer) {
-        vertices = buffer
-        verticesCount = buffer.capacity() / Vertex.size
-        flush()
+    fun draw(array: FloatArray) {
+        if(vertices.remaining()<Vertex.size*6)
+            flush()
+
+        vertices.put(array)
+        verticesCount+=array.size/Vertex.size
     }
 
-    fun loadTexture(path: String) {
+    fun drawFont(text: String, x: Float, y: Float){
+        var drawX=x
+        for(ch in text) {
+        /*    if (ch == '\n') {
+                /* Line feed, set x and y to draw at the next line */
+                drawY -= fontHeight
+                drawX = x
+                continue
+            }
+            if (ch == '\r') {
+                /* Carriage return, just skip it */
+                continue
+            } */
+            val g = font.glyphs[ch]
+            g?.let {
+               // drawTextureRegion(font.texture, drawX, y, it.x, it.y, it.width, it.height)
+                val vert=Vertex.createVertices(font.texWidth,font.texHeight,drawX,y,it.x.toFloat(),it.y.toFloat(),
+                    it.width.toFloat(), it.height.toFloat(), Color.BLACK)
+                vert.forEach {v-> draw(v.toFloatArray()) }
+                drawX += g.width
+            }
+        }
+
+    }
+
+    fun drawTextureRegion(
+       vertex:Vertex
+    ) {
+        if (vertices.remaining() < 7 * 6) {
+            /* We need more space in the buffer, so flush it */
+            flush()
+        }
+
+    }
+
+companion object {
+    fun loadTexture(path: String):GlTexture {
 
 
         try {
@@ -246,19 +282,18 @@ class Renderer {
             width = w.get()
             height = h.get()
 
-            createTexture(image,width,height)
+            return createTexture(image, width, height)
         } catch (e: Exception) {
             System.err.println("Failed loading Texture")
         }
 
-
+        return GlTexture(0)
     }
 
-    fun createTexture(buffer:ByteBuffer,width: Int,height: Int){
+    fun createTexture(buffer: ByteBuffer, width: Int, height: Int):GlTexture {
         val texture = gl.genTextures()
 
         texture.bind(TextureTarget._2D)
-
 
 
         //texture.getImage(0, TextureFormat2.RGB, TextureType2.UNSIGNED_BYTE, image)
@@ -268,11 +303,13 @@ class Renderer {
             0,
             InternalFormat.RGBA8,
             Vec2i(width, height),
-            gli_.gl.ExternalFormat.RGB,
+            gli_.gl.ExternalFormat.RGBA,
             gli_.gl.TypeFormat.U8,
             buffer
         )
         gl.generateMipmap(TextureTarget._2D)
         stbi_image_free(buffer)
+        return texture
     }
+}
 }

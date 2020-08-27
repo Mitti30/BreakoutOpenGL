@@ -8,14 +8,15 @@ import base.bricks.YellowBrick
 import helper.Renderer
 import org.lwjgl.BufferUtils
 import org.lwjgl.glfw.GLFW
-import org.lwjgl.opengl.GL
 import uno.glfw.GlfwWindow
 import uno.glfw.KeyCB
-import uno.glfw.glfw
-import java.io.File
 import java.nio.FloatBuffer
 import kotlin.properties.Delegates
 import glm_.vec3.Vec3
+import gln.TextureTarget
+import helper.FontHelper
+import java.awt.Color
+import java.awt.Font
 
 
 //no level without a game
@@ -75,20 +76,22 @@ class Level(window: GlfwWindow) : GameStateBase(window) {
 
     override fun render() {
         renderer.clear()
-
-        calculateVerticesFromList()
-
+        renderer.brick.bind(TextureTarget._2D)
         renderer.begin()
-        renderer.drawBricks(brickVertices)
+        brickList.forEach {brick->
+            brick.vertices.forEach { vertex->
+              renderer.draw(vertex.toFloatArray())
+            } }
+        paddle.vertices.forEach { renderer.draw(it.toFloatArray()) }
         renderer.end()
 
         // Draw Level Name
-        /*val scoreText = "Score"
+        val scoreText = "Score"
         val scoreTextWidth: Int = renderer.getTextWidth(scoreText)
         val scoreTextHeight: Int = renderer.getTextHeight(scoreText)
-        val scoreTextX: Float = (Game.resolution.component1() - scoreTextWidth) / 2f
-        val scoreTextY: Float = Game.resolution.component2() - scoreTextHeight.toFloat() - 5
-        renderer.drawText(scoreText, scoreTextX, scoreTextY, Color.BLACK) */
+        val scoreTextX: Float = (640 - scoreTextWidth) / 2f
+        val scoreTextY: Float = 480 - scoreTextHeight.toFloat() - 5
+        FontHelper(Font(Font.MONOSPACED, Font.PLAIN, 24),true).drawText(renderer,scoreText, 50f, 50f, Color.BLACK)
 
 
 
