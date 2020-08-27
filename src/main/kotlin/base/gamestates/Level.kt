@@ -14,7 +14,9 @@ import java.nio.FloatBuffer
 import kotlin.properties.Delegates
 import glm_.vec3.Vec3
 import gln.TextureTarget
+import gln.gl
 import helper.FontHelper
+import helper.Vertex
 import java.awt.Color
 import java.awt.Font
 
@@ -60,29 +62,29 @@ class Level(window: GlfwWindow) : GameStateBase(window) {
         }
     }
 
-
-    fun calculateVerticesFromList() {
-        //Two Triangles(3) per Brick * 6 (X, Y, Z, R, G, B)
-        brickVertices = BufferUtils.createFloatBuffer(brickList.size * 6 *helper.Vertex.size + 6*helper.Vertex.size)
-        brickList.forEach {brick->
-            brick.vertices.forEach { vertex->
-                brickVertices.put(vertex.toFloatArray())
-            } }
-        paddle.vertices.forEach {
-            brickVertices.put(it.toFloatArray())
-        }
-        brickVertices.flip()
-    }
-
     override fun render() {
         renderer.clear()
-        renderer.brick.bind(TextureTarget._2D)
+        renderer.colorBlending=false
+        renderer.backgroundTexture.bind(TextureTarget._2D)
+        renderer.begin()
+
+            Vertex.createVertices(0f,0f,Game.resolution.component1().toFloat(),Game.resolution.component2().toFloat(),1f,1f,0f).forEach {
+                renderer.draw(it.toFloatArray())
+            }
+        renderer.flush()
+        renderer.paddleTexture.bind(TextureTarget._2D)
+        paddle.vertices.forEach { renderer.draw(it.toFloatArray()) }
+        renderer.end()
+
+        renderer.brickTexture.bind(TextureTarget._2D)
+        renderer.colorBlending=true
+
         renderer.begin()
         brickList.forEach {brick->
             brick.vertices.forEach { vertex->
               renderer.draw(vertex.toFloatArray())
             } }
-        paddle.vertices.forEach { renderer.draw(it.toFloatArray()) }
+
         renderer.end()
 
         // Draw Level Name
@@ -91,9 +93,8 @@ class Level(window: GlfwWindow) : GameStateBase(window) {
         val scoreTextHeight: Int = renderer.getTextHeight(scoreText)
         val scoreTextX: Float = (640 - scoreTextWidth) / 2f
         val scoreTextY: Float = 480 - scoreTextHeight.toFloat() - 5
-        FontHelper(Font(Font.MONOSPACED, Font.PLAIN, 24),true).drawText(renderer,scoreText, 50f, 50f, Color.BLACK)
-
-
+        renderer.font.drawText(renderer,scoreText,50f,50f, Color.BLACK)
+       //FontHelper(Font(Font.MONOSPACED, Font.PLAIN, 24),true).drawText(renderer,scoreText, 50f, 50f, Color.BLACK)
 
     }
 

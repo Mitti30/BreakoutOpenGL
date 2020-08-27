@@ -33,10 +33,24 @@ class Renderer {
     private var verticesCount = 0
 
     var font = FontHelper(Font(MONOSPACED, PLAIN, 16), true)
-    val brick:GlTexture
+    val brickTexture:GlTexture
+    val backgroundTexture:GlTexture
+    val paddleTexture:GlTexture
+
+    var colorBlending:Boolean=false
+        set(value) {
+            val b=program.getUniformLocation("shouldBlend")
+            if(value)
+                program.programUniform(b,1)
+            else program.programUniform(b,0)
+            field=value
+        }
+
     init {
         initDefaultShaderProgram()
-        brick=loadTexture("./src/main/resources/assets/wall.jpg")
+        brickTexture=loadTexture("./src/main/resources/assets/wall.jpg")
+        backgroundTexture= loadTexture("./src/main/resources/assets/City2.png")
+        paddleTexture=loadTexture("./src/main/resources/assets/paddle.png")
 
     }
 
@@ -199,18 +213,6 @@ class Renderer {
         )
     }
 
-    fun drawTextureRegion(
-        texture: GlTexture,
-        drawX: Float,
-        drawY: Float,
-        x: Int,
-        y: Int,
-        width: Int,
-        height: Int,
-        c: Color = Color.WHITE
-    ) {
-
-    }
 
     fun draw(array: FloatArray) {
         if(vertices.remaining()<Vertex.size*6)
@@ -245,15 +247,6 @@ class Renderer {
 
     }
 
-    fun drawTextureRegion(
-       vertex:Vertex
-    ) {
-        if (vertices.remaining() < 7 * 6) {
-            /* We need more space in the buffer, so flush it */
-            flush()
-        }
-
-    }
 
 companion object {
     fun loadTexture(path: String):GlTexture {
