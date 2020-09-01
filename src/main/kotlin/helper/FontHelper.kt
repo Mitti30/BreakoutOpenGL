@@ -2,16 +2,13 @@ package helper
 
 import gln.TextureTarget
 import gln.identifiers.GlTexture
-import org.lwjgl.system.MemoryUtil
+import org.lwjgl.BufferUtils
 import java.awt.Color
 import java.awt.Font
 import java.awt.RenderingHints
 import java.awt.geom.AffineTransform
 import java.awt.image.AffineTransformOp
 import java.awt.image.BufferedImage
-import java.io.File
-import java.nio.ByteBuffer
-import javax.imageio.ImageIO
 
 
 class FontHelper(private val font: Font, private val antiAlias: Boolean) {
@@ -59,16 +56,12 @@ class FontHelper(private val font: Font, private val antiAlias: Boolean) {
             val charHeight = charImage.height
 
             /* Create glyph and draw char on image */
-
-            /* Create glyph and draw char on image */
             val ch = Glyph(charWidth, charHeight, x, image.height - charHeight, 0f)
             g.drawImage(charImage, x, 0, null)
             x += ch.width
             glyphs[c] = ch
 
         }
-
-        /* Flip image Horizontal to get the origin to bottom left */
 
         /* Flip image Horizontal to get the origin to bottom left */
         val transform = AffineTransform.getScaleInstance(1.0, -1.0)
@@ -80,21 +73,15 @@ class FontHelper(private val font: Font, private val antiAlias: Boolean) {
         image = operation.filter(image, null)
 
         /* Get charWidth and charHeight of image */
-
-        /* Get charWidth and charHeight of image */
         val width = image.width
         val height = image.height
-
-        /* Get pixel data of image */
 
         /* Get pixel data of image */
         val pixels = IntArray(width * height)
         image.getRGB(0, 0, width, height, pixels, 0, width)
 
         /* Put pixel data into a ByteBuffer */
-
-        /* Put pixel data into a ByteBuffer */
-        val buffer: ByteBuffer = MemoryUtil.memAlloc(width * height * 4)
+        val buffer= BufferUtils.createByteBuffer(width * height * 4)
         for (i in 0 until height) {
             for (j in 0 until width) {
                 /* Pixel as RGBA: 0xAARRGGBB */
@@ -106,13 +93,10 @@ class FontHelper(private val font: Font, private val antiAlias: Boolean) {
             }
         }
         /* Do not forget to flip the buffer! */
-        /* Do not forget to flip the buffer! */buffer.flip()
+        buffer.flip()
 
         /* Create texture */
-
-        /* Create texture */
-        val fontTexture = Renderer.createTexture(buffer, width, height)
-        MemoryUtil.memFree(buffer)
+        val fontTexture = GlTexture.createTexture(buffer, width, height)
         texWidth = width.toFloat()
         texHeight = height.toFloat()
         texture = fontTexture
@@ -220,7 +204,7 @@ class FontHelper(private val font: Font, private val antiAlias: Boolean) {
             val g = glyphs[ch]
             g?.let {
                 // drawTextureRegion(font.texture, drawX, y, it.x, it.y, it.width, it.height)
-                val vert = Vertex.createVertices(
+                val vert = Vertex.createVerticesForFontTexture(
                     texWidth, texHeight, drawX, y, it.x.toFloat(), it.y.toFloat(),
                     it.width.toFloat(), it.height.toFloat(), c
                 )

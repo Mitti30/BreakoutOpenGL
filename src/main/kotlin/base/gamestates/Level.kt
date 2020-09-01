@@ -1,12 +1,9 @@
 package base.gamestates
 
-import base.Brick
-import base.Game
-import base.GameStateBase
-import base.Paddle
+import base.*
 import base.bricks.YellowBrick
+import glm_.vec2.Vec2
 import helper.Renderer
-import org.lwjgl.BufferUtils
 import org.lwjgl.glfw.GLFW
 import uno.glfw.GlfwWindow
 import uno.glfw.KeyCB
@@ -14,15 +11,14 @@ import java.nio.FloatBuffer
 import kotlin.properties.Delegates
 import glm_.vec3.Vec3
 import gln.TextureTarget
-import gln.gl
-import helper.FontHelper
+import helper.LevelCreator
 import helper.Vertex
+import uno.glfw.Key
 import java.awt.Color
-import java.awt.Font
 
 
 //no level without a game
-class Level(window: GlfwWindow) : GameStateBase(window) {
+class Level(private val window: GlfwWindow) : GameStateBase(window) {
 
     var finished = false
         private set
@@ -35,30 +31,74 @@ class Level(window: GlfwWindow) : GameStateBase(window) {
 
     val currentBalls = 3
 
+    private val creator=LevelCreator(Game.resolution[0].toFloat(), Game.resolution[1].toFloat(),14,8,0f,0f)
+
     private val brickList = ArrayList<Brick>()
 
     val paddle = Paddle()
+
+    val ball=Ball(paddle)
 
     override val renderer = Renderer()
 
     private lateinit var brickVertices: FloatBuffer
 
+    var currentKeyPressed:Key=Key.of(320)
+
     init {
-        brickList.add(YellowBrick(10f,10f,150f,100f,1f,1f,0f))
-        brickList.add(YellowBrick(500f,500f,150f,100f,1f,1f,0f))
+
 
         window.keyCB=object: KeyCB{
             override fun invoke(key: Int, scanCode: Int, action: Int, mods: Int) {
-                when(key){
+                /*when(key){
                     GLFW.GLFW_KEY_LEFT->
                         if(paddle.currentPosition.component1()-paddle.dimension.component1()/2>0)
                         paddle.currentPosition=Vec3(paddle.currentPosition.component1()-paddle.velocity,paddle.currentPosition.component2(),paddle.currentPosition.component3())
                     GLFW.GLFW_KEY_RIGHT->
                         if(paddle.currentPosition.component1()+paddle.dimension.component1()/2< Game.resolution.component1())
                         paddle.currentPosition=Vec3(paddle.currentPosition.component1()+paddle.velocity,paddle.currentPosition.component2(),paddle.currentPosition.component3())
-                }
+                } */
+                if (action==GLFW.GLFW_PRESS)
+                currentKeyPressed=Key.of(key)
+
+                if(action==GLFW.GLFW_RELEASE && Key.of(key)==currentKeyPressed)
+                    currentKeyPressed=Key.of(320)
             }
 
+        }
+    }
+
+    override fun update(delta: Double) {
+        val list=ArrayList<GameObject>()
+        ball.update(delta)
+        ball.checkCollision(list)
+
+    }
+
+    override fun handleInput() {
+        when(currentKeyPressed){
+            Key.LEFT-> {
+                val new= Vec3(
+                    paddle.currentPosition.component1() - paddle.velocity,
+                    paddle.currentPosition.component2(),
+                    paddle.currentPosition.component3()
+                )
+                if(new.component1()-paddle.dimension.component1()/2<0)
+                    new.r=paddle.dimension.component1()/2
+                paddle.currentPosition=new
+            }
+            Key.RIGHT->{
+                val new= Vec3(
+                    paddle.currentPosition.component1() + paddle.velocity,
+                    paddle.currentPosition.component2(),
+                    paddle.currentPosition.component3()
+                )
+                if(new.component1()+paddle.dimension.component1()/2>Game.resolution.component1())
+                    new.r=Game.resolution.component1()-paddle.dimension.component1()/2
+                paddle.currentPosition=new
+            }
+            Key.SPACE->ball.throwBall()
+            else -> {/*Nothing to do here*/}
         }
     }
 
@@ -68,12 +108,16 @@ class Level(window: GlfwWindow) : GameStateBase(window) {
         renderer.backgroundTexture.bind(TextureTarget._2D)
         renderer.begin()
 
-            Vertex.createVertices(0f,0f,Game.resolution.component1().toFloat(),Game.resolution.component2().toFloat(),1f,1f,0f).forEach {
+            Vertex.createVerticesForRectangle(Game.resolution.component1()/2f,Game.resolution.component2()/2f,Game.resolution.component1().toFloat(),Game.resolution.component2().toFloat(),1f,1f,0f).forEach {
                 renderer.draw(it.toFloatArray())
             }
         renderer.flush()
         renderer.paddleTexture.bind(TextureTarget._2D)
-        paddle.vertices.forEach { renderer.draw(it.toFloatArray()) }
+        paddle.vertices.forEach {
+            val v=Vec2(it.x,it.y)
+
+            renderer.draw(it.toFloatArray()) }
+        ball.vertices.forEach { renderer.draw(it.toFloatArray()) }
         renderer.end()
 
         renderer.brickTexture.bind(TextureTarget._2D)
@@ -91,11 +135,8 @@ class Level(window: GlfwWindow) : GameStateBase(window) {
         val scoreText = "Score"
         val scoreTextWidth: Int = renderer.getTextWidth(scoreText)
         val scoreTextHeight: Int = renderer.getTextHeight(scoreText)
-        val scoreTextX: Float = (640 - scoreTextWidth) / 2f
-        val scoreTextY: Float = 480 - scoreTextHeight.toFloat() - 5
-        renderer.font.drawText(renderer,scoreText,50f,50f, Color.BLACK)
-       //FontHelper(Font(Font.MONOSPACED, Font.PLAIN, 24),true).drawText(renderer,scoreText, 50f, 50f, Color.BLACK)
-
+        renderer.drawText("Level: ${Game.currentLevelPosition+1}",20f,Game.resolution.component2()-20f)
+        renderer.drawText("FPS: " + Game.timer.fps + " | UPS: " + Game.timer.ups, 100f, 100f)
     }
 
 }

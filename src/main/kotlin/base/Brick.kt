@@ -1,20 +1,21 @@
 package base
 
+import base.bricks.GreenBrick
+import base.bricks.RedBrick
+import base.bricks.YellowBrick
 import glm_.vec2.Vec2
 import helper.Vertex
+import kotlin.reflect.KClass
 
-abstract class Brick(x:Float,y:Float,width:Float,height:Float,r:Float,g:Float,b:Float) {
+abstract class Brick(position: Vec2, dimension: Vec2):GameObject(position, dimension) {
 
-    val vertices:Array<Vertex> = Vertex.createVertices(x,y,width,height, r, g, b)
+    override var vertices:Array<Vertex> = Vertex.createVerticesForRectangle(position.x,position.y,dimension.x,dimension.y,companion.color.x.toFloat(),companion.color.y.toFloat(),companion.color.z.toFloat())
 
     abstract var remainingHits: Int
         protected set
 
     var destroyed=false
     private set
-
-    //Important for the Inheritance so we don't need to look up what type of brick it is
-    abstract val companion: BrickCompanion
 
 
     fun hit() {
@@ -28,6 +29,6 @@ abstract class Brick(x:Float,y:Float,width:Float,height:Float,r:Float,g:Float,b:
 
 
 
-interface BrickCompanion {
+interface BrickCompanion:GameObjectCompanion {
     val points: Int
 }

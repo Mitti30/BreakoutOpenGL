@@ -1,12 +1,8 @@
 package helper
 
-import glm_.vec2.Vec2i
 import gln.*
-import gln.glf.semantic
 import gln.identifiers.*
 import org.lwjgl.BufferUtils
-import org.lwjgl.stb.STBImage.*
-import org.lwjgl.system.MemoryStack
 import java.awt.Color
 import java.awt.Font
 import java.awt.Font.MONOSPACED
@@ -14,10 +10,12 @@ import java.awt.Font.PLAIN
 import java.io.BufferedReader
 import java.io.FileInputStream
 import java.io.InputStreamReader
-import java.nio.ByteBuffer
-import java.nio.IntBuffer
 
-
+/**
+ * Helper class for rendering Vertices
+ *
+ * Uses Batch rendering for fewer drawing operations
+ */
 class Renderer {
 
     //!!! Avoid using nullables on Gl Objects
@@ -48,9 +46,9 @@ class Renderer {
 
     init {
         initDefaultShaderProgram()
-        brickTexture=loadTexture("./src/main/resources/assets/wall.jpg")
-        backgroundTexture= loadTexture("./src/main/resources/assets/City2.png")
-        paddleTexture=loadTexture("./src/main/resources/assets/paddle.png")
+        brickTexture=GlTexture.loadTexture("./src/main/resources/assets/wall.jpg")
+        backgroundTexture= GlTexture.loadTexture("./src/main/resources/assets/City2.png")
+        paddleTexture=GlTexture.loadTexture("./src/main/resources/assets/paddle.png")
 
     }
 
@@ -140,10 +138,6 @@ class Renderer {
 
     }
 
-    private fun initVertexData() {
-        TODO("Not yet implemented")
-    }
-
     fun begin() {
         check(!drawing) { "Renderer is already drawing!" }
         drawing = true
@@ -222,87 +216,5 @@ class Renderer {
         verticesCount+=array.size/Vertex.size
     }
 
-    fun drawFont(text: String, x: Float, y: Float){
-        var drawX=x
-        for(ch in text) {
-        /*    if (ch == '\n') {
-                /* Line feed, set x and y to draw at the next line */
-                drawY -= fontHeight
-                drawX = x
-                continue
-            }
-            if (ch == '\r') {
-                /* Carriage return, just skip it */
-                continue
-            } */
-            val g = font.glyphs[ch]
-            g?.let {
-               // drawTextureRegion(font.texture, drawX, y, it.x, it.y, it.width, it.height)
-                val vert=Vertex.createVertices(font.texWidth,font.texHeight,drawX,y,it.x.toFloat(),it.y.toFloat(),
-                    it.width.toFloat(), it.height.toFloat(), Color.BLACK)
-                vert.forEach {v-> draw(v.toFloatArray()) }
-                drawX += g.width
-            }
-        }
-
-    }
-
-
-companion object {
-    fun loadTexture(path: String):GlTexture {
-
-
-        try {
-            val stack = MemoryStack.stackPush()
-            /* Prepare image buffers */
-            var image: ByteBuffer?
-            var width: Int
-            var height: Int
-            val w: IntBuffer = stack.mallocInt(1)
-            val h: IntBuffer = stack.mallocInt(1)
-            val comp: IntBuffer = stack.mallocInt(1)
-
-            /* Load image */stbi_set_flip_vertically_on_load(true)
-            image = stbi_load(path, w, h, comp, 4)
-            if (image == null) {
-                throw RuntimeException(
-                    "Failed to load a texture file!"
-                            + System.lineSeparator() + stbi_failure_reason()
-                )
-            }
-
-            /* Get width and height of image */
-            width = w.get()
-            height = h.get()
-
-            return createTexture(image, width, height)
-        } catch (e: Exception) {
-            System.err.println("Failed loading Texture")
-        }
-
-        return GlTexture(0)
-    }
-
-    fun createTexture(buffer: ByteBuffer, width: Int, height: Int):GlTexture {
-        val texture = gl.genTextures()
-
-        texture.bind(TextureTarget._2D)
-
-
-        //texture.getImage(0, TextureFormat2.RGB, TextureType2.UNSIGNED_BYTE, image)
-
-        gl.texImage2D(
-            Tex2dTarget._2D,
-            0,
-            InternalFormat.RGBA8,
-            Vec2i(width, height),
-            gli_.gl.ExternalFormat.RGBA,
-            gli_.gl.TypeFormat.U8,
-            buffer
-        )
-        gl.generateMipmap(TextureTarget._2D)
-        stbi_image_free(buffer)
-        return texture
-    }
-}
+    fun drawText(text: String, x: Float, y: Float)=font.drawText(this,text, x, y)
 }

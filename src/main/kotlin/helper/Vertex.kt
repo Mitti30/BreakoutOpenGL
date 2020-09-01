@@ -6,14 +6,37 @@ import glm_.vec3.Vec3
 import glm_.vec4.Vec4
 import java.awt.Color
 
+/**
+ * Helper Class for a Vertex
+ *
+ * @property x Position on x-Axis
+ * @property y Position on y-Axis
+ * @property r Red color value
+ * @property g Green color value
+ * @property b Blue color value
+ * @property tx Texture position on x-Axis
+ * @property ty Texture position on y-Axis
+ */
 class Vertex(var x: Float, var y: Float, var r: Float, var g: Float, var b: Float, var tx: Float, var ty: Float) {
 
     companion object{
         val size:Int
             get() = Type.POSITION.size+Type.COLOR.size+Type.TEX_POSITION.size
 
-
-        fun createVertices(
+        /**
+         * Creates the 6 Vertices from the Parameters of a Rectangle
+         *
+         * @param x Center x coordinate
+         * @param y Center y coordinate
+         * @param width Width of the Rectangle
+         * @param height Height of the Rectangle
+         * @param r Red color value
+         * @param g Green color value
+         * @param b Blue color value
+         * @param useTexture Should use a texture?
+         * @return Array of the 6 calculated Triangle vertices
+         */
+        fun createVerticesForRectangle(
             x: Float,
             y: Float,
             width: Float,
@@ -21,30 +44,44 @@ class Vertex(var x: Float, var y: Float, var r: Float, var g: Float, var b: Floa
             r: Float,
             g: Float,
             b: Float,
-            texture: Boolean = true
+            useTexture: Boolean = true
         ): Array<Vertex> {
-            return if(texture)arrayOf(
-                Vertex(x, y, r, g, b, 0f, 0f), //bottom / left
-                Vertex(x + width, y, r, g, b, 1f, 0f), //bottom / right
-                Vertex(x, y + height, r, g, b, 0f, 1f), //top / left
+            return if(useTexture)arrayOf(
+                Vertex(x-width/2, y-height/2, r, g, b, 0f, 0f), //bottom / left
+                Vertex(x+width/2, y-height/2, r, g, b, 1f, 0f), //bottom / right
+                Vertex(x-width/2, y + height/2, r, g, b, 0f, 1f), //top / left
 
-                Vertex(x + width, y, r, g, b, 1f, 0f), // bottom / right
-                Vertex(x + width, y + height, r, g, b, 1f, 1f), // top / right
-                Vertex(x, y + height, r, g, b, 0f, 1f) // top / left
+                Vertex(x +width/2, y-height/2, r, g, b, 1f, 0f), // bottom / right
+                Vertex(x + width/2, y + height/2, r, g, b, 1f, 1f), // top / right
+                Vertex(x-width/2, y + height/2, r, g, b, 0f, 1f) // top / left
             )
             else arrayOf(
-                Vertex(x, y, r, g, b, 0f, 0f), //bottom / left
-                Vertex(x + width, y, r, g, b, 0f, 0f), //bottom / right
-                Vertex(x, y + height, r, g, b, 0f, 0f), //top / left
+                Vertex(x-width/2, y-height/2, r, g, b, 0f, 0f), //bottom / left
+                Vertex(x+width/2, y-height/2, r, g, b, 1f, 0f), //bottom / right
+                Vertex(x-width/2, y + height/2, r, g, b, 0f, 1f), //top / left
 
-                Vertex(x + width, y, r, g, b, 0f, 0f), // bottom / right
-                Vertex(x + width, y + height, r, g, b, 0f, 0f), // top / right
-                Vertex(x, y + height, r, g, b, 0f, 0f) // top / left
+                Vertex(x +width/2, y-height/2, r, g, b, 1f, 0f), // bottom / right
+                Vertex(x + width/2, y + height/2, r, g, b, 1f, 1f), // top / right
+                Vertex(x-width/2, y + height/2, r, g, b, 0f, 1f) // top / left
             )
 
         }
 
-        fun createVertices(
+        /**
+         * Creates the 6 Vertices with Texture Position used for the Fonttexture rendering
+         *
+         * @param texWidth
+         * @param texHeight
+         * @param x
+         * @param y
+         * @param regX
+         * @param regY
+         * @param regWidth
+         * @param regHeight
+         * @param c
+         * @return Array of the 6 calculated Triangle vertices
+         */
+        fun createVerticesForFontTexture(
             texWidth: Float,
             texHeight: Float,
             x: Float,
@@ -83,6 +120,9 @@ class Vertex(var x: Float, var y: Float, var r: Float, var g: Float, var b: Floa
 
     }
 
+    /**
+     * Projection Matrix used for converting pixel positions to normalized OpenGl positions
+     */
     private val matrix= glm.ortho(
         0f,
         Game.resolution.component1().toFloat(),
@@ -97,6 +137,11 @@ class Vertex(var x: Float, var y: Float, var r: Float, var g: Float, var b: Floa
         return Vec3(vec.component1(), vec.component2(), vec.component3())
     }
 
+    /**
+     * Convert Vertex to Normalized Float Array
+     *
+     * @return Float Array
+     */
     fun toFloatArray(): FloatArray {
         val ortho=ortho()
        return floatArrayOf(
@@ -104,6 +149,11 @@ class Vertex(var x: Float, var y: Float, var r: Float, var g: Float, var b: Floa
        )
     }
 
+    /**
+     * Enum with Structure of a Vertex
+     *
+     * @property size
+     */
     enum class Type(val size: Int) {
         POSITION(3),COLOR(3),TEX_POSITION(2)
     }

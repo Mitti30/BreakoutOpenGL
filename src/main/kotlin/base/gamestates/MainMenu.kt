@@ -8,6 +8,14 @@ class MainMenu(window: GlfwWindow) :GameStateBase(window) {
     override val renderer: Renderer
         get() = TODO("Not yet implemented")
 
+    override fun update(delta: Double) {
+        TODO("Not yet implemented")
+    }
+
+    override fun handleInput() {
+        TODO("Not yet implemented")
+    }
+
     override fun render() {
         TODO("Not yet implemented")
     }

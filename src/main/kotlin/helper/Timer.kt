@@ -17,7 +17,7 @@ class Timer {
     /**
      * Used for FPS and UPS calculation.
      */
-    private var timeCount = 0f
+    private var timeCount = 0.0
 
     /**
      * Frames per second.
@@ -34,9 +34,9 @@ class Timer {
     /**
      * Updates per second.
      */
-    private var ups = 0
+    var ups = 0
     get() = if (field > 0) field else upsCount
-
+    private set
     /**
      * Counter for the UPS calculation.
      */
@@ -55,10 +55,10 @@ class Timer {
      *
      * @return Delta time in seconds
      */
-    val delta: Float
+    val delta: Double
     get(){
         val time = time
-        val delta = (time - lastLoopTime).toFloat()
+        val delta = time - lastLoopTime
         lastLoopTime = time
         timeCount += delta
         return delta
